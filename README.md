@@ -9,8 +9,8 @@ Notes:<br>
 <br>
 1.0. The datasets used in this study are too large to upload as a csv to this git repository, so they can be accessed and downloaded at the following google drive links (you will need to update the filepaths in the replication r script so that it downloads data from your local computer):
 
-Main Data (Google & Wikipedia): https://drive.google.com/file/d/1Q7bBzHn04SmsoGAdGLWoEkCEsl81wqMp/view?usp=sharing <br>
-Main Data (Experiment): https://drive.google.com/file/d/1jOai7zF92yUy8jKTsQac-UU85wUXSJeT/view?usp=share_link <br>
+Main Data (Google & Wikipedia): https://drive.google.com/file/d/1PE0_NcTcbvDoi0ePxemacFuZ7w4vH9lD/view?usp=sharing <br>
+Main Data (Experiment): https://drive.google.com/file/d/1iVnmGLd28gh95NBRJahfvjsfB6HlPf39/view?usp=sharing <br>
 IP Replication Data (Google): https://drive.google.com/file/d/18Yeb32hlihoD8ptFf9srFMnT3vcDeYmN/view?usp=sharing <br>
 Uncropped Data (Google): https://drive.google.com/file/d/1dgpKDnuSvdNbwGGQI4I_bJWjIDBDchHT/view?usp=share_link <br>
 IMDb Data (from the IMDb-Wiki dataset): https://drive.google.com/file/d/1X3KNxXACfV76WbiWLmkhNfE8ka7Ik9kw/view?usp=sharing <br>
