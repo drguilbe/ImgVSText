@@ -1,5 +1,5 @@
-# How Online Images Amplify Gender Bias
-This github contains all of the replication materials for Guilbeault et al. (2023) "How Online Images Amplify Gender Bias"
+# Online Images Amplify Gender Bias
+This github contains all of the replication materials for Guilbeault et al. (2023) "Online Images Amplify Gender Bias"
 
 This git contains:<br>
 -An r script for replicating all main and supplementary analyses from the raw data.<br>
