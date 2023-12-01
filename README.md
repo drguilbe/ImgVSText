@@ -24,7 +24,9 @@ OpenCV classifications of Google Data (uncropped): https://drive.google.com/file
 Image Sources Tagged (Experiment): https://drive.google.com/file/d/1nh3ft7t0c2_tUpYXazsknia99cnVi94E/view?usp=share_link <br>
 Image Sources Tagged Stats (Experiment): https://drive.google.com/file/d/1wbyKUm6IarsDJ4fnpgJR3fpY55ylBgut/view?usp=share_link <br>
 Supplementary Validation Task Data: https://drive.google.com/file/d/1B513crVrZfosR7EngYQ7Mdh0HZn040Op/view?usp=share_link <br>
-
+Raw syn1neg vectors for our retrained skipgram model: https://drive.google.com/file/d/1tZOgM519h8hPcxWyuhAiMZxZfOLA4DBj/view?usp=sharing <br>
+Raw wv.vectors for our retrained skipgram model: https://drive.google.com/file/d/1ZsNfK9dsXTaFkPVI_fJXwJHkJv4fz_qV/view?usp=sharing <br>
+<br>
 1.1. The data associated with the IMDb-Wiki Dataset is from the following paper:
 
 Rothe, Rasmus, Radu Timofte, and Luc Van Gool. “Deep Expectation of Real and Apparent Age from a Single Image Without Facial Landmarks.” International Journal of Computer Vision 126, no. 2 (April 1, 2018): 144–57. https://doi.org/10.1007/s11263-016-0940-3.
