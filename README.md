@@ -2,8 +2,10 @@
 This github contains all of the replication materials for Guilbeault et al. (2023) "Online Images Amplify Gender Bias"
 
 This git contains:<br>
--An r script for replicating all main and supplementary analyses from the raw data.<br>
+-An r script for replicating all main and supplementary analyses from the raw data ("master script.R").<br>
 -The raw data for all experiments<br>
+-Python code for training a skipgram model from scratch ("word2vec_training.py"). 
+-The word2vec model we retained on a recent sample of online news ("word2vec-retrained.model"). 
 
 Notes:<br>
 <br>
