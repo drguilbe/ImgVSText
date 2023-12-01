@@ -4,9 +4,9 @@ This github contains all of the replication materials for Guilbeault et al. (202
 This git contains:<br>
 -An r script for replicating all main and supplementary analyses from the raw data ("master script.R").<br>
 -The raw data for all experiments<br>
--Python code for training a skipgram model from scratch ("word2vec_training.py"). 
--The word2vec model we retained on a recent sample of online news ("word2vec-retrained.model"). 
-
+-Python code for training a skipgram model from scratch ("word2vec_training.py"). <br>
+-The word2vec model we retained on a recent sample of online news ("word2vec-retrained.model"). <br>
+<br>
 Notes:<br>
 <br>
 1.0. The datasets used in this study are too large to upload as a csv to this git repository, so they can be accessed and downloaded at the following google drive links (you will need to update the filepaths in the replication r script so that it downloads data from your local computer):
