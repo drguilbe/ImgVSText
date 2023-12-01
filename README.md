@@ -4,8 +4,10 @@ This github contains all of the replication materials for Guilbeault et al. (202
 This git contains:<br>
 -An r script for replicating all main and supplementary analyses from the raw data ("master script.R").<br>
 -The raw data for all experiments<br>
--Python code for training a skipgram model from scratch ("word2vec_training.py"). <br>
+-Python code for training a skipgram model from scratch ("word2vec_training.ipynb"). <br>
 -The word2vec model we retained on a recent sample of online news ("word2vec-retrained.model"). <br>
+-A python script which demonstrates how to extract a gender dimension from a word embedding model and position social categories along this dimension (applied to our retrained word2vec model) ("gender_parity_retrained_word2vec.ipynb"). <br>
+
 <br>
 Notes:<br>
 <br>
