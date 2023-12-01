@@ -2,8 +2,9 @@
 This github contains all of the replication materials for Guilbeault et al. (2023) "Online Images Amplify Gender Bias"
 
 This git contains:<br>
--An r script for replicating all main and supplementary analyses from the raw data ("master script.R").<br>
--The raw data for all experiments<br>
+-An r script for replicating all main and supplementary analyses from the raw metadata ("master script.R").<br>
+-The raw image data collected and coded from Google and Wikipedia (see below for details) <br>
+-The raw data for all experiments (see below for details) <br>
 -Python code for training a skipgram model from scratch ("word2vec_training.ipynb"). <br>
 -The word2vec model we retained on a recent sample of online news ("word2vec-retrained.model"). <br>
 -A python script which demonstrates how to extract a gender dimension from a word embedding model and position social categories along this dimension (applied to our retrained word2vec model) ("gender_parity_retrained_word2vec.ipynb"). <br>
@@ -14,6 +15,7 @@ Notes:<br>
 1.0. The datasets used in this study are too large to upload as a csv to this git repository, so they can be accessed and downloaded at the following google drive links (you will need to update the filepaths in the replication r script so that it downloads data from your local computer):
 
 Main Data (Google & Wikipedia): https://drive.google.com/file/d/1PE0_NcTcbvDoi0ePxemacFuZ7w4vH9lD/view?usp=sharing <br>
+Raw Image Data (Google & Wikipedia): https://compsyn.s3.ca-central-1.amazonaws.com/Guilbeault_etal_Online_Images_Amplify_Gender_Bias_raw_faces.zip (note: "g/" = Google images; "w/" = Wikipedia images)  <br>
 Main Data (Experiment): https://drive.google.com/file/d/1iVnmGLd28gh95NBRJahfvjsfB6HlPf39/view?usp=sharing <br>
 IP Replication Data (Google): https://drive.google.com/file/d/18Yeb32hlihoD8ptFf9srFMnT3vcDeYmN/view?usp=sharing <br>
 Uncropped Data (Google): https://drive.google.com/file/d/1dgpKDnuSvdNbwGGQI4I_bJWjIDBDchHT/view?usp=share_link <br>
