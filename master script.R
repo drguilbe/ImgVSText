@@ -1,4 +1,4 @@
-#Replication Script for the "How Online Images Amplify Gender Bias", 2023
+#Replication Script for "Online Images Amplify Gender Bias"
 #Douglas R. Guilbeault
 #Haas School of Business
 #University of California, Berkeley
@@ -6,7 +6,11 @@
 rm(list=ls());gc();
 library(dplyr);library(ggplot2);library(tidyverse);library(tidyr);library(aod);library(lme4);library(nlme);library(glmmTMB);
 library(sjPlot);library(clinfun);library(multiwayvcov);library(lmtest);require(MASS);library(fmsb);library(Hmisc); 
+library(sandwich); library(xtable)
 library(irrCAC) #https://search.r-project.org/CRAN/refmans/irrCAC/html/gwet.ac1.raw.html
+#library(remotes)
+#remotes::install_github("Lakens/TOSTER") #load for wilcox equivalence test
+library(TOSTER)
 
 #functions
 min_max_norm<-function(x){(x - min(x,na.rm=T))/(max(x,na.rm=T) - min(x,na.rm=T))}
@@ -17,8 +21,7 @@ getmode <- function(v) {
 }
 
 #Set path to folder containing data files
-#download data at: https://github.com/drguilbe/ImgVSText 
-data_path<-"" #path to folder where you've downloaded the data to
+data_path<-""
 
 ####################
 #Load/Organize Data#
@@ -223,9 +226,7 @@ ggplot(fig2A, aes(x = Gender.Parity, fill=Measure)) +
   annotate(geom="text", x=1.1, y=0.8, size=15, label="Male",color="Black")
 
 #ggsave('Fig2A.png', width=11, height=11, path = savepath_main)
-
-fig2A %>% group_by(Measure) %>% 
-  dplyr::summarise(maleskew=sum(Gender.Parity>0)/length(Gender.Parity))
+fig2A %>% group_by(Measure) %>% dplyr::summarise(maleskew=sum(Gender.Parity>0)/length(Gender.Parity))
 
 ############
 ###Fig 2B###
@@ -240,8 +241,10 @@ fig2B<-rbind(data.frame(Human.Judge.Bin = fig2B$Human.Judge.Bin, Parity=fig2B$Im
              data.frame(Human.Judge.Bin = fig2B$Human.Judge.Bin, Parity=fig2B$Human.Judgments, Method="Human.Judgments"))
 
 ggplot(fig2B, aes(x=Human.Judge.Bin, y=Parity, color = Method, shape=Method, group=Method))+
-  geom_point(size=12, alpha=0.4) + geom_line(size=3, aes(color=Method), alpha=0.4) +
+  geom_point(size=12, alpha=0.6) + 
+  geom_smooth(aes(color=Method, fill=Method), size=1, alpha=0.3) + 
   scale_color_manual(values=c("blue","purple", "forestgreen")) + 
+  scale_fill_manual(values=c("blue","purple", "forestgreen")) + 
   xlab("Gender Association\n(Binned Human Judgments)") + 
   ylab("Gender Association") +
   theme_bw() + theme(axis.text.x = element_text(size=60),
@@ -311,6 +314,7 @@ ggplot(fig2C_long_agg, aes(x = Gender.Association, y = Measure, color =  Measure
 
 #ggsave('Fig2C.png', width=16, height=16, path = savepath_main)
 
+wilcox.test(fig2C$GoogleNews.300D.Gender.Norm)
 t.test(fig2C$census.gender.parity, fig2C$Img.Gender.Parity, paired=T)
 t.test(fig2C$census.gender.parity, fig2C$GoogleNews.300D.Gender.Norm, paired=T)
 t.test(fig2C$Img.Gender.Parity, fig2C$GoogleNews.300D.Gender.Norm, paired=T)
@@ -332,7 +336,7 @@ exp_dt_simp_agg<-exp_dt_simp %>% group_by(category, condition) %>% dplyr::summar
                                                                                     btwn.upload.str=abs(btwn.upload.parity))
 exp_dt_simp_agg_full<-merge(exp_dt_simp, exp_dt_simp_agg, by=c("category", "condition"))
 
-fig3AEF<-exp_dt_simp_agg_full %>% group_by(condition, category) %>% 
+fig3ACD<-exp_dt_simp_agg_full %>% group_by(condition, category) %>% 
   dplyr::summarise(
     gender.rate = mean(gender.rate, na.rm=T),
     str_stereo = mean(str_stereo, na.rm=T), 
@@ -342,46 +346,45 @@ fig3AEF<-exp_dt_simp_agg_full %>% group_by(condition, category) %>%
     stim.str = abs(stim.parity)
   )
 
-ggplot(fig3AEF, aes(x = stim.str, fill=condition, alpha=condition, linetype=condition)) +
+ggplot(fig3ACD, aes(x = stim.str, fill=condition, alpha=condition, linetype=condition)) +
   geom_density(size=1.4) + theme_bw() + scale_alpha_manual(values=c(0.5,0.5)) + 
   scale_linetype_manual(values=c("solid", "solid")) + 
   scale_fill_manual(values=c("purple","forestgreen")) + 
-  ylab("Density") + xlab("Strength of Gender Association in\nParticipants' Uploads") + 
+  ylab("Density") + xlab("Average Strength of Gender\nAssociation in Participants' Uploads") + 
   theme(legend.text=element_text(size=50),
         legend.position=c(0.8,0.85),
         legend.title = element_blank(),
         plot.title=element_blank(),
-        axis.title.x=element_text(size = 40, hjust = 0.5),
-        axis.title.y=element_text(size = 40, hjust = 0.5),
-        axis.text.x=element_text(size = 40, hjust = 0.5),
-        axis.text.y=element_text(size = 40, hjust = 0.5), 
+        axis.title.x=element_text(size = 36, hjust = 0.5),
+        axis.title.y=element_text(size = 36, hjust = 0.5),
+        axis.text.x=element_text(size = 36, hjust = 0.5),
+        axis.text.y=element_text(size = 36, hjust = 0.5), 
         panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
   scale_x_continuous(limits = c(-0.28, 1.26), breaks=c(0,0.25,0.5,0.75,1), labels=c("0", "0.25", "0.5", "0.75", "1")) + 
-  geom_vline(xintercept = mean(subset(fig3AEF, condition=="Image")$stim.str), color="purple", size=2) + 
-  geom_vline(xintercept = mean(subset(fig3AEF, condition=="Text")$stim.str), color="forestgreen", size=2)
+  geom_vline(xintercept = mean(subset(fig3ACD, condition=="Image")$stim.str), color="purple", size=2) + 
+  geom_vline(xintercept = mean(subset(fig3ACD, condition=="Text")$stim.str), color="forestgreen", size=2)
 
 #ggsave('Fig3A.png', width=10, height=10, path = savepath_main)
 
 ########
 #Fig 3B#
 ########
-fig3B<-exp_dt_main %>% group_by(category,condition) %>% dplyr::summarise(str_stereo=mean(str_stereo,na.rm=T)) 
-fig3B_all<-fig3B %>% group_by(category) %>% dplyr::summarise(numcond=length(unique(condition)))
+fig3B<-exp_dt_main %>% group_by(category,condition) %>% dplyr::summarise(str_stereo=mean(str_stereo,na.rm=T), gender.rate = mean(gender.rate, na.rm=T)) 
 
 ggplot(fig3B, aes(x = str_stereo, fill=condition, alpha=condition, linetype=condition)) +
   geom_density(size=1.4) + theme_bw() + 
   scale_alpha_manual(values=c(0,0.5,0.5,0)) + 
   scale_linetype_manual(values=c("dotted", "solid", "solid")) + 
   scale_fill_manual(values=c("black", "purple", "forestgreen")) + 
-  ylab("Density") + xlab("Strength of Participants'\n Gender Associations") + 
+  ylab("Density") + xlab("Avg. Strength of Gender Association\nin Participants' Explicit Ratings") + 
   theme(legend.text=element_text(size=50),
         legend.position=c(0.78,0.85),
         legend.title = element_blank(),
         plot.title=element_blank(),
-        axis.title.x=element_text(size = 40, hjust = 0.5),
-        axis.title.y=element_text(size = 40, hjust = 0.5),
-        axis.text.x=element_text(size = 40, hjust = 0.5),
-        axis.text.y=element_text(size = 40, hjust = 0.5), 
+        axis.title.x=element_text(size = 36, hjust = 0.5),
+        axis.title.y=element_text(size = 36, hjust = 0.5),
+        axis.text.x=element_text(size = 36, hjust = 0.5),
+        axis.text.y=element_text(size = 36, hjust = 0.5), 
         panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
   scale_x_continuous(limits = c(-0.05, 0.96), breaks=c(0,0.25,0.5,0.75,1), 
                      labels=c("0", "0.25", "0.5", "0.75", "1")) + 
@@ -390,82 +393,24 @@ ggplot(fig3B, aes(x = str_stereo, fill=condition, alpha=condition, linetype=cond
   geom_vline(xintercept = mean(subset(fig3B, condition=="Control")$str_stereo), color="black", size=2, linetype="dotted")
 
 #ggsave('Fig3B.png', width=10, height=10, path = savepath_main)
-
 pairwise.wilcox.test(fig3B$str_stereo, fig3B$condition, p.adjust.method = "none", paired=T)
+
+#run equivalence test
+wilcox_TOST(subset(fig3B, condition=="Image")$str_stereo, subset(fig3B, condition=="Text")$str_stereo, paired=F, eqb = 0.11)
 
 ########
 #Fig 3C#
 ########
-fig3C<-exp_dt_main %>% group_by(ProlificID,condition) %>% dplyr::summarise(str_stereo=mean(str_stereo), dscore=mean(dscore, na.rm=T),str.dscore=abs(dscore)) 
-
-ggplot(fig3C, aes(x = abs(dscore), fill=condition, alpha=condition, linetype=condition)) +
-  geom_density(size=1.4) + theme_bw() + 
-  scale_alpha_manual(values=c(0,0.5,0.5,0)) + 
-  scale_linetype_manual(values=c("dotted", "solid", "solid")) + 
-  scale_fill_manual(values=c("black", "purple", "forestgreen")) + 
-  ylab("Density") + xlab("Strength of Participants' Implicit \nBias (dscore)") + 
-  theme(legend.text=element_text(size=50),
-        legend.position=c(0.8,0.8),
-        legend.title = element_blank(),
-        plot.title=element_blank(),
-        axis.title.x=element_text(size = 40, hjust = 0.5),
-        axis.title.y=element_text(size = 40, hjust = 0.5),
-        axis.text.x=element_text(size = 40, hjust = 0.5),
-        axis.text.y=element_text(size = 40, hjust = 0.5), 
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  scale_x_continuous(limits = c(-0.3, 1.6)) + 
-  geom_vline(xintercept = mean(abs(subset(fig3C, condition=="Image")$dscore), na.rm=T), color="purple", size=2) + 
-  geom_vline(xintercept = mean(abs(subset(fig3C, condition=="Text")$dscore), na.rm=T), color="forestgreen", size=2) + 
-  geom_vline(xintercept = mean(abs(subset(fig3C, condition=="Control")$dscore), na.rm=T), color="black", size=2, linetype="dotted") + 
-  scale_y_continuous(breaks=c(0,1))
-
-#ggsave('fig3C.png', width=10, height=10, path = savepath_main)
-
-pairwise.wilcox.test(fig3C$dscore, fig3C$condition, p.adjust.method = "none")
-
-########
-#Fig 3D#
-########
-exp_dt_main$str_stereo_BIN<-ntile(exp_dt_main$str_stereo, 4)
-
-fig3D<-exp_dt_main %>% group_by(str_stereo_BIN) %>% 
-  dplyr::summarise(str_stereo = mean(str_stereo,na.rm=T), 
-                   cilow=t.test(dscore, conf.level=0.95)$conf.int[1], 
-                   cihi=t.test(dscore, conf.level=0.95)$conf.int[2],
-                   dscore = mean(dscore, na.rm=T))
-
-ggplot(fig3D, aes(x=str_stereo_BIN, y=dscore))+
-  geom_point(size=18, color="black") + geom_line(size=3) + 
-  geom_errorbar(aes(ymin=cilow, ymax=cihi), linetype="solid",width=0.2, size=3)+
-  xlab("Strength of Participants' Gender \n Associations (Quartiles)") + 
-  ylab("Participants' Implicit Bias \n (IAT dscore)") + theme_bw() + 
-  theme(plot.title = element_text(size=60, hjust=0.5), 
-        axis.text.x = element_text(size=60),
-        axis.text.y = element_text(size=60),
-        axis.title.x = element_text(size=60),
-        axis.title.y = element_text(size=60),
-        legend.position = "none", legend.text=element_text(size=30),
-        legend.title=element_text(size=30, face="bold"),panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),panel.background = element_blank(), 
-        axis.line = element_line(colour = "black")) + 
-  scale_y_continuous(limits=c(0.34, 0.46), breaks=c(0.35, 0.4, 0.45))
-
-#ggsave('fig3D.png', width=16, height=16, path = savepath_main)
-jonckheere.test(exp_dt_main$dscore, exp_dt_main$str_stereo_BIN)
-
-########
-#Fig 3E#
-########
-ggplot(fig3AEF, aes(x=stim.parity, y=gender.rate, shape=condition, color=condition, group=1))+
+ggplot(fig3ACD, aes(x=stim.parity, y=gender.rate, shape=condition, color=condition, group=1))+
   geom_point(size=8) + 
   geom_smooth(size=6, method='lm', formula= y~x, color="black") + 
   scale_color_manual(values=c("purple", "forestgreen")) + 
-  xlab("Gender Associations in\nParticipants' Uploads") + 
-  ylab("Gender Associations in\nParticipants' Responses") + theme_bw() + 
-  theme(axis.text.x = element_text(size=40), 
-        axis.text.y = element_text(size=40),
-        axis.title.x = element_text(size=40),
-        axis.title.y = element_text(size=40),
+  xlab("Average Gender Association in\nParticipants' Uploads") + 
+  ylab("Average Gender Association in\nParticipants' Explicit Responses") + theme_bw() + 
+  theme(axis.text.x = element_text(size=36), 
+        axis.text.y = element_text(size=36),
+        axis.title.x = element_text(size=36),
+        axis.title.y = element_text(size=36),
         legend.position = c(0.83,0.1), 
         legend.text=element_text(size=40),
         legend.title=element_blank(),
@@ -480,27 +425,27 @@ ggplot(fig3AEF, aes(x=stim.parity, y=gender.rate, shape=condition, color=conditi
   scale_x_continuous(limits = c(-1.02, 1.02), breaks=c(-1,-0.5,0,0.5,1), 
                      labels=c("-1","-0.5","0","0.5","1"))
 
-#ggsave('Fig3E.png', width=10, height=10, path = savepath_main)
+#ggsave('Fig3C.png', width=10, height=10, path = savepath_main)
 
-cor.test(fig3AEF$gender.rate, fig3AEF$stim.parity)
-cor.test(subset(fig3AEF, condition=="Image")$gender.rate, 
-         subset(fig3AEF, condition=="Image")$stim.parity)
-cor.test(subset(fig3AEF, condition!="Image")$gender.rate, 
-         subset(fig3AEF, condition!="Image")$stim.parity)
+cor.test(fig3ACD$gender.rate, fig3ACD$stim.parity)
+cor.test(subset(fig3ACD, condition=="Image")$gender.rate, 
+         subset(fig3ACD, condition=="Image")$stim.parity)
+cor.test(subset(fig3ACD, condition!="Image")$gender.rate, 
+         subset(fig3ACD, condition!="Image")$stim.parity)
 
 ########
-#Fig 3F#
+#Fig 3D#
 ########
-ggplot(fig3AEF, aes(x=stim.str, y=str_stereo, shape=condition, color=condition, group=1))+
+ggplot(fig3ACD, aes(x=stim.str, y=str_stereo, shape=condition, color=condition, group=1))+
   geom_point(size=8) + 
   geom_smooth(size=6, method='lm', formula= y~x, color="black") + 
   scale_color_manual(values=c("purple", "forestgreen")) + 
-  xlab("Strength of Gender Associations\nin Participants' Uploads") + 
-  ylab("Strength of Gender Associations\nin Participants' Responses") + theme_bw() + 
-  theme(axis.text.x = element_text(size=40), 
-        axis.text.y = element_text(size=40),
-        axis.title.x = element_text(size=40),
-        axis.title.y = element_text(size=40),
+  xlab("Average Strength of Gender \n Association in Participants' Uploads") + 
+  ylab("Avg. Strength of Gender Association \n in Participants' Explicit Responses") + theme_bw() + 
+  theme(axis.text.x = element_text(size=36), 
+        axis.text.y = element_text(size=36),
+        axis.title.x = element_text(size=36),
+        axis.title.y = element_text(size=36),
         legend.position = c(0.83,0.1), 
         legend.text=element_text(size=40),
         legend.title=element_blank(),
@@ -515,49 +460,126 @@ ggplot(fig3AEF, aes(x=stim.str, y=str_stereo, shape=condition, color=condition, 
   scale_y_continuous(limits = c(0.1, 0.72), breaks=c(0.1,0.2,0.3,0.4,0.5,0.6,0.7), 
                      labels=c(0.1,0.2,0.3,0.4,0.5,0.6,0.7))
 
-#ggsave('Fig3F.png', width=10, height=10, path = savepath_main)
+#ggsave('Fig3D.png', width=10, height=10, path = savepath_main)
 
-cor.test(fig3AEF$stim.str, fig3AEF$str_stereo)
-cor.test(subset(fig3AEF, condition=="Image")$str_stereo, 
-         subset(fig3AEF, condition=="Image")$stim.str)
-cor.test(subset(fig3AEF, condition!="Image")$stim.str, 
-         subset(fig3AEF, condition!="Image")$str_stereo)
+cor.test(fig3ACD$stim.str, fig3ACD$str_stereo)
+cor.test(subset(fig3ACD, condition=="Image")$str_stereo, 
+         subset(fig3ACD, condition=="Image")$stim.str)
+cor.test(subset(fig3ACD, condition!="Image")$stim.str, 
+         subset(fig3ACD, condition!="Image")$str_stereo)
 
 #Experimental Control Models
-fig3AEF$condition<-as.factor(as.character(fig3AEF$condition))
-fig3AEF <- within(fig3AEF, condition <- relevel(condition, ref = 2))
+fig3ACD$condition<-as.factor(as.character(fig3ACD$condition))
+fig3ACD <- within(fig3ACD, condition <- relevel(condition, ref = 2))
 
-#Fig.3E controls
-mod_3E_cntrl_simp<-lm(gender.rate ~ condition, data=fig3AEF)
-summary(mod_3E_cntrl_simp)
-mod_3E_cntrl_simp_vcov <- cluster.vcov(mod_3E_cntrl_simp, fig3AEF$category)
-coeftest(mod_3E_cntrl_simp, mod_3E_cntrl_simp_vcov)
+#Fig.3C controls
+mod_3C_cntrl_simp<-lm(gender.rate ~ condition, data=fig3ACD)
+summary(mod_3C_cntrl_simp)
+mod_3C_cntrl_simp_vcov <- cluster.vcov(mod_3C_cntrl_simp, fig3ACD$category)
+coeftest(mod_3C_cntrl_simp, mod_3C_cntrl_simp_vcov)
 
-mod_3E_cntrl<-lm(gender.rate ~ stim.parity + condition, data=fig3AEF)
-summary(mod_3E_cntrl)
-mod_3E_cntrl_vcov <- cluster.vcov(mod_3E_cntrl, fig3AEF$category)
-coeftest(mod_3E_cntrl, mod_3E_cntrl_vcov)
+mod_3C_cntrl<-lm(gender.rate ~ stim.parity + condition, data=fig3ACD)
+summary(mod_3C_cntrl)
+mod_3C_cntrl_vcov <- cluster.vcov(mod_3C_cntrl, fig3ACD$category)
+coeftest(mod_3C_cntrl, mod_3C_cntrl_vcov)
 
-mod_3E_cntrl_int<-lm(gender.rate ~ stim.parity * condition, data=fig3AEF)
-summary(mod_3E_cntrl_int)
-mod_3E_cntrl_int_vcov <- cluster.vcov(mod_3E_cntrl_int, fig3AEF$category)
-coeftest(mod_3E_cntrl_int, mod_3E_cntrl_int_vcov)
+mod_3C_cntrl_int<-lm(gender.rate ~ stim.parity * condition, data=fig3ACD)
+summary(mod_3C_cntrl_int)
+mod_3C_cntrl_int_vcov <- cluster.vcov(mod_3C_cntrl_int, fig3ACD$category)
+coeftest(mod_3C_cntrl_int, mod_3C_cntrl_int_vcov)
 
-#Fig.3F controls
-mod_3F_cntrl_simp<-lm(str_stereo ~ condition, data=fig3AEF)
-summary(mod_3F_cntrl_simp)
-mod_3F_cntrl_simp_vcov <- cluster.vcov(mod_3F_cntrl_simp, fig3AEF$category)
-coeftest(mod_3F_cntrl_simp, mod_3F_cntrl_simp_vcov)
+#Fig.3D controls
+mod_3D_cntrl_simp<-lm(str_stereo ~ condition, data=fig3ACD)
+summary(mod_3D_cntrl_simp)
+mod_3D_cntrl_simp_vcov <- cluster.vcov(mod_3D_cntrl_simp, fig3ACD$category)
+coeftest(mod_3D_cntrl_simp, mod_3D_cntrl_simp_vcov)
 
-mod_3F_cntrl<-lm(str_stereo ~ stim.str + condition, data=fig3AEF)
-summary(mod_3F_cntrl)
-mod_3F_cntrl_vcov <- cluster.vcov(mod_3F_cntrl, fig3AEF$category)
-coeftest(mod_3F_cntrl, mod_3F_cntrl_vcov)
+mod_3D_cntrl<-lm(str_stereo ~ stim.str + condition, data=fig3ACD)
+summary(mod_3D_cntrl)
+mod_3D_cntrl_vcov <- cluster.vcov(mod_3D_cntrl, fig3ACD$category)
+coeftest(mod_3D_cntrl, mod_3D_cntrl_vcov)
 
-mod_3F_cntrl_int<-lm(str_stereo ~ stim.str * condition, data=fig3AEF)
-summary(mod_3F_cntrl_int)
-mod_3F_cntrl_int_vcov <- cluster.vcov(mod_3F_cntrl_int, fig3AEF$category)
-coeftest(mod_3F_cntrl_int, mod_3F_cntrl_int_vcov)
+mod_3D_cntrl_int<-lm(str_stereo ~ stim.str * condition, data=fig3ACD)
+summary(mod_3D_cntrl_int)
+mod_3D_cntrl_int_vcov <- cluster.vcov(mod_3D_cntrl_int, fig3ACD$category)
+coeftest(mod_3D_cntrl_int, mod_3D_cntrl_int_vcov)
+
+########
+#Fig 3E#
+########
+fig3E<-exp_dt_main %>% group_by(ProlificID, condition) %>% dplyr::summarise(str_stereo=mean(str_stereo), dscore=mean(dscore, na.rm=T),str.dscore=abs(dscore)) 
+
+ggplot(fig3E, aes(x = dscore, fill=condition, alpha=condition, linetype=condition)) +
+  geom_density(size=1.4) + theme_bw() + 
+  scale_alpha_manual(values=c(0,0.5,0.5,0)) + 
+  scale_linetype_manual(values=c("dotted", "solid", "solid")) + 
+  scale_fill_manual(values=c("black", "purple", "forestgreen")) + 
+  ylab("Density") + xlab("Participants' Implicit Gender Bias \n (D Score)") + 
+  theme(legend.text=element_text(size=50),
+        legend.position=c(0.2,0.85),
+        legend.title = element_blank(),
+        plot.title=element_blank(),
+        axis.title.x=element_text(size = 36, hjust = 0.5),
+        axis.title.y=element_text(size = 36, hjust = 0.5),
+        axis.text.x=element_text(size = 36, hjust = 0.5),
+        axis.text.y=element_text(size = 36, hjust = 0.5), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
+  scale_x_continuous(limits = c(-0.7, 1.55), breaks=c(-0.4, 0, 0.4, 0.8, 1.2)) + 
+  geom_vline(xintercept = mean(subset(fig3C, condition=="Image")$dscore, na.rm=T), color="purple", size=2) + 
+  geom_vline(xintercept = mean(subset(fig3C, condition=="Text")$dscore, na.rm=T), color="forestgreen", size=2) + 
+  geom_vline(xintercept = mean(subset(fig3C, condition=="Control")$dscore, na.rm=T), color="black", size=2, linetype="dotted") + 
+  scale_y_continuous(breaks=c(0,1))
+
+#ggsave('fig3E.png', width=10, height=10, path = savepath_main)
+pairwise.wilcox.test(fig3E$dscore, fig3E$condition, p.adjust.method = "none")
+pairwise.t.test(fig3E$dscore, fig3E$condition, p.adjust.method = "none")
+
+#run equivalence tests
+wilcox_TOST(subset(fig3E, condition=="Control")$dscore, subset(fig3E, condition=="Text")$dscore, paired=F, eqb = 0.13)
+wilcox_TOST(subset(fig3E, condition=="Image")$dscore, subset(fig3E, condition=="Text")$dscore, paired=F, eqb = 0.14)
+
+wilcox.test(subset(exp_dt_main, condition=="Control")$dscore)
+wilcox.test(subset(exp_dt_main, condition=="Image")$dscore)
+wilcox.test(subset(exp_dt_main, condition=="Text")$dscore)
+
+########
+#Fig 3F#
+########
+exp_dt_main$str_stereo_BIN<-ntile(exp_dt_main$str_stereo, 4)
+
+fig3F<-exp_dt_main %>% group_by(str_stereo_BIN) %>% 
+  dplyr::summarise(str_stereo = mean(str_stereo,na.rm=T), 
+                   cilow=t.test(dscore, conf.level=0.95)$conf.int[1], 
+                   cihi=t.test(dscore, conf.level=0.95)$conf.int[2],
+                   dscore = mean(dscore, na.rm=T))
+
+ggplot(fig3F, aes(x=str_stereo_BIN, y=dscore))+
+  geom_point(size=18, color="black") + geom_line(size=3) + 
+  geom_errorbar(aes(ymin=cilow, ymax=cihi), linetype="solid",width=0.2, size=3)+
+  xlab("Strength of Participants' Explicit \n Gender Associations (Quartiles)") + 
+  ylab("Average Implicit Gender Bias \n (D Score)") + theme_bw() + 
+  theme(plot.title = element_text(size=60, hjust=0.5), 
+        axis.text.x = element_text(size=60),
+        axis.text.y = element_text(size=60),
+        axis.title.x = element_text(size=60),
+        axis.title.y = element_text(size=60),
+        legend.position = "none", legend.text=element_text(size=30),
+        legend.title=element_text(size=30, face="bold"),panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) + 
+  scale_y_continuous(limits=c(0.34, 0.46), breaks=c(0.35, 0.4, 0.45))
+
+#ggsave('fig3F.png', width=16, height=16, path = savepath_main)
+
+jonckheere.test(exp_dt_main$dscore, exp_dt_main$str_stereo_BIN)
+jonckheere.test(exp_dt_main$dscore, exp_dt_main$str_stereo)
+
+#Replicating with linear regression
+exp_dt_main$ProlificID<-as.factor(exp_dt_main$ProlificID)
+fig3F_mod<-lm(dscore ~ str_stereo + condition + category, data = exp_dt_main)
+summary(fig3F_mod)
+fig3F_mod_vcov <- cluster.vcov(fig3F_mod, exp_dt_main$ProlificID)
+coeftest(fig3F_mod, fig3F_mod_vcov)
 
 ############################
 #Experimental Supplementary#
@@ -591,11 +613,11 @@ ggplot(fig3B_supp, aes(x = str_stereo, fill=condition, alpha=condition, color=co
 #ggsave('Fig3B_supp.png', width=10, height=10, path = savepath_supp)
 
 #############
-#Fig 3C Supp#
+#Fig 3E Supp#
 #############
-fig3C_supp<-exp_dt %>% group_by(ProlificID,condition) %>% dplyr::summarise(str_stereo=mean(str_stereo), dscore=mean(dscore, na.rm=T),str.dscore=abs(dscore)) 
+fig3E_supp<-exp_dt %>% group_by(ProlificID,condition) %>% dplyr::summarise(str_stereo=mean(str_stereo), dscore=mean(dscore, na.rm=T),str.dscore=abs(dscore)) 
 
-ggplot(fig3C_supp, aes(x = str.dscore, fill=condition, alpha=condition, color=condition,linetype=condition)) +
+ggplot(fig3E_supp, aes(x = str.dscore, fill=condition, alpha=condition, color=condition,linetype=condition)) +
   geom_density(size=1.7) + theme_bw() + 
   scale_alpha_manual(values=c(0,0.5,0.5,0)) + 
   scale_linetype_manual(values=c("dotted", "solid", "solid", "dotted")) + 
@@ -613,11 +635,11 @@ ggplot(fig3C_supp, aes(x = str.dscore, fill=condition, alpha=condition, color=co
         panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
   scale_x_continuous(limits = c(-0.3, 1.7)) 
 
-#ggsave('Fig3C_supp.png', width=10, height=10, path = savepath_supp)
+#ggsave('fig3E_supp.png', width=10, height=10, path = savepath_supp)
 
-pairwise.wilcox.test(fig3C_supp$dscore, fig3C_supp$condition, p.adjust.method = "none")
-pairwise.wilcox.test(fig3C_supp$str.dscore, fig3C_supp$condition, p.adjust.method = "none")
-pairwise.t.test(fig3C_supp$str.dscore, fig3C_supp$condition, p.adjust.method = "none")
+pairwise.wilcox.test(fig3E_supp$dscore, fig3E_supp$condition, p.adjust.method = "none")
+pairwise.wilcox.test(fig3E_supp$str.dscore, fig3E_supp$condition, p.adjust.method = "none")
+pairwise.t.test(fig3E_supp$str.dscore, fig3E_supp$condition, p.adjust.method = "none")
 
 ###################################################
 #Comparing strength of priming for text and images#
@@ -647,17 +669,131 @@ ggplot(exp_dt_gendered, aes(x = str_stereo, fill=condition, alpha=condition, lin
 
 exp_dt_gendered %>% group_by(condition) %>% dplyr::summarise(numdescriptions=length(str_stereo),str_stereo=mean(str_stereo))
 t.test(subset(exp_dt_gendered, condition=="Image")$str_stereo,subset(exp_dt_gendered, condition=="Text")$str_stereo)
-
 exp_dt_gendered$condition<-as.factor(exp_dt_gendered$condition)
 exp_dt_gendered <- within(exp_dt_gendered, condition <- relevel(condition, ref = 2))
 mod_prime_str<-lm(str_stereo ~ condition + category + as.factor(gender_num), data=exp_dt_gendered)
 summary(mod_prime_str)
 
+#######################################
+#Observational corr. with experimental#
+#######################################
+comparison_data_main_Google$category<-comparison_data_main_Google$Social.Category
+comparison_data_main_Google$category<-gsub(" ", "", comparison_data_main_Google$category)
+exp_obs_m<-merge(fig3ACD, comparison_data_main_Google, by=c("category"))
+
+cor.test(subset(exp_obs_m, condition=="Image")$Img.Gender.Parity, subset(exp_obs_m, condition=="Image")$btwn.upload.parity)
+cor.test(subset(exp_obs_m, condition=="Image")$Img.Gender.Parity, subset(exp_obs_m, condition=="Image")$gender.rate)
+cor.test(subset(exp_obs_m, condition=="Image")$gender.rate, subset(exp_obs_m, condition=="Image")$btwn.upload.parity)
+cor.test(subset(exp_obs_m, condition=="Text")$GoogleNews.300D.Gender.Norm, subset(exp_obs_m, condition=="Text")$btwn.upload.parity)
+cor.test(subset(exp_obs_m, condition=="Text")$GoogleNews.300D.Gender.Norm, subset(exp_obs_m, condition=="Text")$gender.rate)
+
+ggplot(subset(exp_obs_m, condition=="Image"), 
+       aes(x=Img.Gender.Parity, y=btwn.upload.parity, group=1))+
+  geom_point(size=8) + theme_bw() + 
+  geom_smooth(size=6, method='lm', formula= y~x, color="blue") + 
+  xlab("Gender Associations in Google Images\n(Observational)") + 
+  ylab("Gender Associations in Google Images\n(Participants' Experiment Uploads)") + 
+  theme(axis.text.x = element_text(size=40), 
+        axis.text.y = element_text(size=40),
+        axis.title.x = element_text(size=40),
+        axis.title.y = element_text(size=40),
+        legend.position = c(0.83,0.1), 
+        legend.text=element_text(size=40),
+        legend.title=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        legend.box.background = element_rect(colour = "black"),
+        legend.background = element_blank()) + 
+  geom_vline(xintercept = 0, linetype="dotted", size=2) + 
+  geom_hline(yintercept = 0, linetype="dotted", size=2) + 
+  coord_cartesian(xlim=c(-0.9, 0.9), ylim=c(-1,1))
+
+#ggsave('pA_obsv_exp_corr.png', width=14, height=14, path = savepath_supp)
+
+ggplot(subset(exp_obs_m, condition=="Image"), 
+       aes(x=Img.Gender.Parity, y=gender.rate, group=1))+
+  geom_point(size=8) + theme_bw() + 
+  geom_smooth(size=6, method='lm', formula= y~x, color="blue") + 
+  xlab("Gender Associations in Google Images\n(Observational)") + 
+  ylab("Gender Associations in Participants' Responses\n(Experimental)") + 
+  theme(axis.text.x = element_text(size=40), 
+        axis.text.y = element_text(size=40),
+        axis.title.x = element_text(size=40),
+        axis.title.y = element_text(size=40),
+        legend.position = c(0.83,0.1), 
+        legend.text=element_text(size=40),
+        legend.title=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        legend.box.background = element_rect(colour = "black"),
+        legend.background = element_blank()) + 
+  geom_vline(xintercept = 0, linetype="dotted", size=2) + 
+  geom_hline(yintercept = 0, linetype="dotted", size=2) + 
+  coord_cartesian(xlim=c(-0.9, 0.9), ylim=c(-1, 1))
+
+#ggsave('pB_obsv_exp_corr.png', width=14, height=14, path = savepath_supp)
+
+ggplot(subset(exp_obs_m, condition=="Text"), 
+       aes(x=GoogleNews.300D.Gender.Norm, y=btwn.upload.parity, group=1))+
+  geom_point(size=8) + theme_bw() + 
+  geom_smooth(size=6, method='lm', formula= y~x, color="blue") + 
+  xlab("Gender Associations in Google News\n(Observational)") + 
+  ylab("Gender Associations in Google News\n(Participants' Experiment Uploads)") + 
+  theme(axis.text.x = element_text(size=40), 
+        axis.text.y = element_text(size=40),
+        axis.title.x = element_text(size=40),
+        axis.title.y = element_text(size=40),
+        legend.position = c(0.83,0.1), 
+        legend.text=element_text(size=40),
+        legend.title=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        legend.box.background = element_rect(colour = "black"),
+        legend.background = element_blank()) + 
+  geom_vline(xintercept = 0, linetype="dotted", size=2) + 
+  geom_hline(yintercept = 0, linetype="dotted", size=2) + 
+  coord_cartesian(xlim=c(-0.65, 0.65), ylim=c(-0.5,0.5)) + 
+  scale_y_continuous(breaks=c(-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6))
+
+#ggsave('pC_obsv_exp_corr.png', width=14, height=14, path = savepath_supp)
+
+ggplot(subset(exp_obs_m, condition=="Text"), 
+       aes(x=GoogleNews.300D.Gender.Norm, y=gender.rate, group=1))+
+  geom_point(size=8) + theme_bw() + 
+  geom_smooth(size=6, method='lm', formula= y~x, color="blue") + 
+  xlab("Gender Associations in Google News\n(Observational)") + 
+  ylab("Gender Associations in Participants' Responses\n(Experimental)") + 
+  theme(axis.text.x = element_text(size=40), 
+        axis.text.y = element_text(size=40),
+        axis.title.x = element_text(size=40),
+        axis.title.y = element_text(size=40),
+        legend.position = c(0.83,0.1), 
+        legend.text=element_text(size=40),
+        legend.title=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"), 
+        legend.box.background = element_rect(colour = "black"),
+        legend.background = element_blank()) + 
+  geom_vline(xintercept = 0, linetype="dotted", size=2) + 
+  geom_hline(yintercept = 0, linetype="dotted", size=2) + 
+  coord_cartesian(xlim=c(-0.65, 0.65), ylim=c(-0.6,0.6)) + 
+  scale_y_continuous(breaks=c(-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6))
+
+#ggsave('pD_obsv_exp_corr.png', width=14, height=14, path = savepath_supp)
+
 ##############################################################
 #Main Experimental Results Controlling for Participant Gender#
 ##############################################################
 
-#Table S10 (Gender of upload controlling for gender of participant)
+#Table (Gender of upload controlling for gender of participant)
 exp_dt_txt<-subset(exp_dt_main, condition %in% c("Text"))
 exp_dt_txt_simp<-exp_dt_txt %>% dplyr::select(ProlificID, category, condition, gender_num, Subj.Sex)
 colnames(exp_dt_txt_simp)[4]<-"gender_upload"
@@ -674,7 +810,7 @@ summary(mod_gender)
 mod_gender_vcov <- cluster.vcov(mod_gender, exp_dt_txt_v_img$ProlificID)
 coeftest(mod_gender, mod_gender_vcov)
 
-#Table S11 (Strength of Gender Associations in Subjects' Responses Controlling for Subject Gender/Gender Match w. Upload)
+#Table (Strength of Gender Associations in Subjects' Responses Controlling for Subject Gender/Gender Match w. Upload)
 mod1_s11<-lm(str_stereo ~ condition + category, data = exp_dt_main)
 summary(mod1_s11)
 mod1_s11_vcov <- cluster.vcov(mod1_s11, exp_dt_main$ProlificID)
@@ -883,11 +1019,10 @@ ggplot(fig1B_combo_main, aes(x = fig1b_gender_assoc, y = figb_combo_cond, fill =
         panel.grid.minor = element_blank(),panel.background = element_blank(), 
         axis.line = element_line(colour = "black")) + geom_vline(xintercept=0,size=1, linetype="dotted")
 
-#ggsave('Fig1B_bycombo.png', width=14, height=16, path = "C:/Users/dougl/Desktop/new_fig1B/")
+#ggsave('Fig1B_bycombo.png', width=14, height=16, path = savepath_supp)
 
 t.test(subset(fig1B_combo_main, fig1b_cond == "Female Cat.\n(by combo)" & fig1b_measure == "Text")$fig1b_gender_assoc, 
        subset(fig1B_combo_main, fig1b_cond == "Female Cat.\n(by combo)" & fig1b_measure == "Images")$fig1b_gender_assoc, paired=T)
-
 t.test(subset(fig1B_combo_main, fig1b_cond == "Male Cat.\n(by combo)" & fig1b_measure == "Text")$fig1b_gender_assoc, 
        subset(fig1B_combo_main, fig1b_cond == "Male Cat.\n(by combo)" & fig1b_measure == "Images")$fig1b_gender_assoc, paired=T)
 
@@ -938,8 +1073,7 @@ t.test(subset(fig2C_long_cat, Measure=="Census" & Census.Gender == "Male")$Gende
 comparison_data_main_Google$phrase<-grepl(" ", comparison_data_main_Google$Social.Category)
 comparison_data_main_Google_unigram<-subset(comparison_data_main_Google, !phrase)
 
-unigram_fig<-rbind(data.frame(Measure="Text", 
-                              Gender.Parity = comparison_data_main_Google_unigram$GoogleNews.300D.Gender.Norm, 
+unigram_fig<-rbind(data.frame(Measure="Text", Gender.Parity = comparison_data_main_Google_unigram$GoogleNews.300D.Gender.Norm, 
                               Social.Category=comparison_data_main_Google_unigram$Social.Category), 
                    data.frame(Measure="Images", Gender.Parity = comparison_data_main_Google_unigram$Img.Gender.Parity, 
                               Social.Category=comparison_data_main_Google_unigram$Social.Category))
@@ -983,7 +1117,6 @@ comparison_data_main_Google_long<-rbind(
 
 mod_polyfreq_str<-lm(Strength.Bias ~ Measure + Word.Frequency.Scaled + Polysemy, data=comparison_data_main_Google_long)
 summary(mod_polyfreq_str)
-
 tab_model(mod_polyfreq_str)
 mod_polyfreq_str_vcov <- cluster.vcov(mod_polyfreq_str, comparison_data_main_Google_long$Social.Category)
 coeftest(mod_polyfreq_str, mod_polyfreq_str_vcov)
@@ -1071,7 +1204,7 @@ t.test(subset(comparison_data_main_Google_census_long, Measure=="Images")$Gender
 ##########################################
 #results while examining uncropped images# 
 ##########################################
-uncropped<-read.csv("C:/Users/dougl/Desktop/Nature_Data/data_uncropped_raw.csv")
+uncropped<-read.csv(paste(data_path, "data_uncropped_raw.csv", sep=""))
 uncropped_clean<-subset(uncropped, humface=="Yes" & catface=="Yes" & gender %in% c("Male", "Female"))
 prop.test(sum(uncropped_clean$gender == "Male"), nrow(uncropped_clean), p=0.5)
 
@@ -1393,6 +1526,7 @@ ggplot(embedding_comp_long_sub, aes(x = Gender.bias.str, color=model, fill=model
 ml_cropped<-read.csv(paste(data_path, "ml_cropped.csv", sep=""))
 ml_cropped<-ml_cropped[complete.cases(ml_cropped),]
 ml_cropped<-subset(ml_cropped, !is.na(gender))
+ml_cropped$condition<-"Cropped"
 
 ml_cropped_agg<-ml_cropped %>% group_by(searchDEMO, Social.Category, condition) %>% 
   dplyr::summarise(Prop.Male = sum(gender=="Male")/length(gender), 
@@ -1404,6 +1538,7 @@ ml_cropped %>% group_by(gender) %>% dplyr::summarise(gender_conf=mean(gender_con
 
 ml_uncropped<-read.csv(paste(data_path, "ml_uncropped.csv", sep=""))
 ml_uncropped<-subset(ml_uncropped, !is.na(gender))
+ml_uncropped$condition<-"Uncropped"
 
 ml_uncropped_agg<-ml_uncropped %>% group_by(searchDEMO, Social.Category, condition) %>% 
   dplyr::summarise(Prop.Male = sum(gender=="Male")/length(gender), 
@@ -1415,9 +1550,9 @@ ml_uncropped %>% group_by(gender) %>% dplyr::summarise(gender_conf=mean(gender_c
 ml_dt_long<-rbind(ml_uncropped_agg, ml_cropped_agg)
 ml_dt_long_main<-subset(ml_dt_long, searchDEMO=="None")
 
-ggplot(ml_dt_long_main, aes(x = Gender.Bias, color=condition, group=condition, linetype=condition, alpha=condition)) + 
+ggplot(ml_dt_long_main, aes(x = Gender.Bias, color=condition, group=condition, alpha=condition)) + 
   scale_alpha_manual(values=c(0,0.6,0.6)) + 
-  scale_color_manual(values=c("purple", "purple")) + scale_linetype_manual(values=c("dotted","solid")) + 
+  scale_color_manual(values=c("purple", "grey70")) + 
   geom_density(lwd = 4) + theme_bw() + xlab("Gender Association") + ylab("Density") + 
   theme(legend.text=element_text(size=50),legend.position="top",legend.title = element_blank(),
         plot.title=element_text(size = 60, hjust = 0.5),axis.title.y=element_text(size = 60, hjust = 0.5),
@@ -1427,7 +1562,7 @@ ggplot(ml_dt_long_main, aes(x = Gender.Bias, color=condition, group=condition, l
   geom_vline(xintercept = mean(subset(ml_dt_long_main, condition=="Cropped")$Gender.Bias, na.rm=T), 
              color="purple", size=4, alpha=1, linetype="solid") + 
   geom_vline(xintercept = mean(subset(ml_dt_long_main, condition=="Uncropped")$Gender.Bias, na.rm=T), 
-             color="purple", size=4, alpha=1, linetype="dotted") + 
+             color="grey70", size=4, alpha=1, linetype="solid") + 
   geom_vline(xintercept = 0, color="black", size=4, alpha=1, linetype="solid") + 
   annotate(geom="text", x=-1, y=1, size=20, label="Female",color="Black") + 
   annotate(geom="text", x=1.1, y=1, size=20, label="Male",color="Black") + 
@@ -1440,26 +1575,22 @@ ML_bar_fig<-ml_dt_long_main %>% group_by(searchDEMO,condition) %>%
                    cihi=t.test(Prop.Male)$conf.int[2],
                    Prop.Male=mean(Prop.Male))
 
-ggplot(ML_bar_fig, aes(y=Prop.Male, x=reorder(condition, -Prop.Male), fill = condition))+
-  geom_bar(stat="identity", position=position_dodge(0.9), color="black", size=3) + 
-  scale_fill_manual(values=c("purple", "white")) + 
-  geom_errorbar(aes(ymin=cilow, ymax=cihi), linetype="solid",width=0.2, size=2)+
-  ylab("Measure") + ylab("P(Male Category)") + 
-  theme_bw() + theme(axis.text.x = element_text(size=60),
-                     axis.text.y = element_text(size=60),
-                     axis.title.y = element_text(size=60, vjust=1.2),
-                     axis.title.x = element_blank(),
-                     strip.text.x = element_text(size=60),
-                     legend.position = "none", 
-                     legend.text=element_text(size=18),
-                     legend.title=element_text(size=18, face="bold"),
-                     panel.grid.major = element_blank(), 
-                     panel.grid.minor = element_blank(),
-                     panel.background = element_blank(), 
-                     axis.line = element_blank()) + 
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + 
-  geom_hline(yintercept = 0.5)+
-  coord_cartesian(ylim=c(0.45,0.73))
+ggplot(ml_dt_long_main, aes(y=Prop.Male, x=reorder(condition, -Prop.Male), 
+                            fill =  condition, group=condition, color=condition)) +
+  geom_boxplot(size=2, outlier.size=0, outlier.colour = "white") + 
+  scale_fill_manual(values=c("pink", "grey90")) +
+  scale_color_manual(values=c("purple", "grey50")) + 
+  ylab("P(Male Face)") + theme_bw() + 
+  theme(axis.text.x = element_text(size=60), 
+        axis.text.y = element_text(size=60),
+        axis.title.y = element_text(size=60, vjust=0.5),
+        axis.title.x = element_blank(),
+        legend.position = "none", legend.text=element_text(size=82),
+        legend.title=element_blank(),panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) + 
+  geom_hline(yintercept = 0.5) +  
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) 
 
 #ggsave('FIG_ML_B.png', width=16, height=16, path = savepath_supp)
 
@@ -1773,7 +1904,7 @@ ggplot(wiki_imdb_prop_fig, aes(y=Prop.Male, x=Source, fill = Source))+
   geom_bar(stat="identity", position=position_dodge(0.9), color="black", size=3) + 
   scale_fill_manual(values=c("blue", "red")) + 
   geom_errorbar(aes(ymin=cilow, ymax=cihi), linetype="solid",width=0.03, size=6)+
-  xlab("Measure") + ylab("P(Male Category)") + 
+  xlab("Measure") + ylab("P(Male Face)") + 
   theme_bw() + theme(axis.text.x = element_text(size=50),
                      axis.text.y = element_text(size=50),
                      axis.title.y = element_text(size=50),
@@ -1834,6 +1965,8 @@ ggplot(wiki_imdb_point_fig, aes(x=Gender.Bias, y=reorder(Source, Gender.Bias), f
 ############################
 wiki_dt<-subset(data_binary_mode_agg_macro_final, Data.Source=="Wikipedia")
 
+wiki_dt_clean<-subset(wiki_dt, num_faces>=10)
+
 wiki_rep<-rbind(data.frame(Measure="Text.50D", Gender.Parity = wiki_dt$Wiki.50D.Gender.Norm, 
                             Social.Category=wiki_dt$Social.Category), 
                 data.frame(Measure="Text.100D", Gender.Parity = wiki_dt$Wiki.100D.Gender.Norm, 
@@ -1860,10 +1993,10 @@ ggplot(wiki_rep, aes(x = abs(Gender.Parity), color=Measure, fill=Measure, alpha=
         legend.position="top",
         legend.title = element_blank(),
         plot.title=element_blank(),
-        axis.title.y=element_text(size = 50, hjust = 0.5),
-        axis.title.x=element_text(size = 50, hjust = 0.5),
-        axis.text.x=element_text(size = 60, hjust = 0.6),
-        axis.text.y=element_text(size = 60, hjust = 0.6),
+        axis.title.y=element_text(size = 40, hjust = 0.5),
+        axis.title.x=element_text(size = 40, hjust = 0.5),
+        axis.text.x=element_text(size = 40, hjust = 0.6),
+        axis.text.y=element_text(size = 40, hjust = 0.6),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
   scale_x_continuous(limits=c(-0.3,1.3), breaks=c(0,0.25,0.5,0.75,1))
 
@@ -1894,7 +2027,7 @@ ggplot(wiki_rep_pmale, aes(y=Prop.Male, x=Measure, fill=Measure))+
                      panel.grid.minor = element_blank(),
                      panel.background = element_blank(), 
                      axis.line = element_blank()) + 
-  coord_cartesian(ylim=c(0.45,0.73)) + 
+  coord_cartesian(ylim=c(0.45,0.83)) + 
   geom_hline(yintercept = 0.5, linetype="dashed", size=2)
 
 #ggsave('wiki_rep_pMale.png', width=16, height=16, path = savepath_supp)
@@ -1940,7 +2073,7 @@ data_binary_mode_agg_noDEMO<-subset(data_binary_mode_agg, searchDEMO=="None" & D
 
 nsamp_fig<-data.frame()
 
-for(sim in seq(1,10,1)){
+for(sim in seq(1,50,1)){
   print(sim)
   for(n in seq(1,50,1)){
     sub_df<-data_binary_mode_agg_noDEMO %>% group_by(Social.Category) %>% sample_n(n, replace=TRUE)
@@ -1964,7 +2097,6 @@ nsamp_fig_plot<-nsamp_fig %>% group_by(n) %>%
   dplyr::summarise(prop_male=mean(prop_male), cilow=mean(cilow), ci_hi=mean(cihi))
 
 ggplot(nsamp_fig_plot) + theme_bw() +
-  geom_point(size=7, aes(x=n, y=prop_male), stroke = 1.25) +
   geom_smooth(size=4, aes(x=n, y=prop_male), color="red") +
   xlab("Number of Images per Search Term") + ylab("Proportion of Male Faces") + 
   theme(axis.text=element_text(size=40),
@@ -2170,6 +2302,12 @@ mod_cntrl_deom <- glmmTMB(Gender.of.Face ~ coder_age + coder_inc + coder_edu + c
 summary(mod_cntrl_deom)
 tab_model(mod_cntrl_deom, show.ci = FALSE, show.se=TRUE)
 
+#evaluate bias toward same gender classification
+f_coders<-subset(data_binary, coder_gender=="Female" & Data.Source == "Google")
+table(f_coders$Img.Gender)/sum(table(f_coders$Img.Gender))
+m_coders<-subset(data_binary, coder_gender=="Male" & Data.Source == "Google")
+table(m_coders$Img.Gender)/sum(table(m_coders$Img.Gender))
+
 #control for rate of intercoder agreement 
 data_binary_str_agree<-data_binary %>% 
   group_by(Data.Source, Social.Category, searchDEMO, face_id, image_id, Img.Gender) %>% 
@@ -2248,16 +2386,6 @@ mod_gen_controls <- miceadds::glm.cluster(data=data_mode_avatar_Google,
 summary(mod_gen_controls)
 exp(cbind(coef(mod_gen_controls), confint(mod_gen_controls)))  
 NagelkerkeR2(mod_gen_controls$glm_res)
-
-
-
-
-
-
-
-
-
-
 
 
 
