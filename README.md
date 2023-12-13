@@ -16,7 +16,7 @@ Notes:<br>
 
 Main Data (Google & Wikipedia): https://drive.google.com/file/d/1PE0_NcTcbvDoi0ePxemacFuZ7w4vH9lD/view?usp=sharing <br>
 Raw Image Data (Google & Wikipedia): https://compsyn.s3.ca-central-1.amazonaws.com/Guilbeault_etal_Online_Images_Amplify_Gender_Bias_raw_faces.zip (note: "g/" = Google images; "w/" = Wikipedia images)  <br>
-Main Data (Experiment): https://drive.google.com/file/d/1dTKChD-tgib_7TmjrAvxVnDMO-0d6JWd/view?usp=sharing <br>
+Main Data (Experiment): https://drive.google.com/file/d/1oW03dmiYtWGijcvBwPRjpCC_lXClRppD/view?usp=sharing <br>
 IP Replication Data (Google): https://drive.google.com/file/d/18Yeb32hlihoD8ptFf9srFMnT3vcDeYmN/view?usp=sharing <br>
 Uncropped Data (Google): https://drive.google.com/file/d/1dgpKDnuSvdNbwGGQI4I_bJWjIDBDchHT/view?usp=share_link <br>
 IMDb Data (from the IMDb-Wiki dataset): https://drive.google.com/file/d/1X3KNxXACfV76WbiWLmkhNfE8ka7Ik9kw/view?usp=sharing <br>
